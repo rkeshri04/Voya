@@ -126,46 +126,11 @@
         const aslOutput = document.getElementById('aslOutput');
         let recognizing = false;
         let recognition;
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                recognizing = true;
-                micBtn.classList.add('active');
-                speechText.textContent = 'Listening...';
-            };
-            recognition.onend = () => {
-                recognizing = false;
-                micBtn.classList.remove('active');
-                speechText.textContent = 'Click the mic and start speaking...';
-            };
-            recognition.onresult = (event) => {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    transcript += event.results[i][0].transcript;
-                }
-                speechText.textContent = transcript;
-                showASL(transcript);
-            };
-        } else {
-            micBtn.disabled = true;
-            speechText.textContent = 'Web Speech API not supported in this browser.';
-        }
-
-        micBtn.onclick = () => {
-            if (recognizing) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        };
-
         let aslMode = 'individual';
-        let timer; // keep timer global so it's easily cleared
+        let timer;
         let animationActive = false;
+        let detectedWords = [];
+        let lastTranscript = '';
 
         document.getElementById('modeIndividual').onchange = () => { aslMode = 'individual'; };
         document.getElementById('modeGroup').onchange = () => { aslMode = 'group'; };
@@ -269,6 +234,56 @@
                 }
             });
         }
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                recognizing = true;
+                micBtn.classList.add('active');
+                speechText.textContent = 'Listening...';
+            };
+            recognition.onend = () => {
+                recognizing = false;
+                micBtn.classList.remove('active');
+                speechText.textContent = 'Click the mic and start speaking...';
+            };
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                transcript = transcript.trim();
+                if (transcript !== lastTranscript) {
+                    let newWords = transcript.replace(/[^a-zA-Z0-9 ]/g, '').split(' ');
+                    for (let w of newWords) {
+                        if (w && !detectedWords.includes(w)) {
+                            detectedWords.push(w);
+                        }
+                    }
+                    lastTranscript = transcript;
+                }
+                speechText.textContent = detectedWords.join(' ');
+                showASL(detectedWords.join(' '));
+            };
+        } else {
+            micBtn.disabled = true;
+            speechText.textContent = 'Web Speech API not supported in this browser.';
+        }
+
+        micBtn.onclick = () => {
+            if (recognizing) {
+                recognition.stop();
+            } else {
+                detectedWords = [];
+                lastTranscript = '';
+                speechText.textContent = 'Listening...';
+                recognition.start();
+            }
+        };
     </script>
 </body>
 </html>
