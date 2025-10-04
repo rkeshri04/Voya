@@ -165,17 +165,23 @@
 
         let aslMode = 'individual';
         let timer; // keep timer global so it's easily cleared
+        let animationActive = false;
 
         document.getElementById('modeIndividual').onchange = () => { aslMode = 'individual'; };
         document.getElementById('modeGroup').onchange = () => { aslMode = 'group'; };
 
-        function showASL(text) {
-            aslOutput.innerHTML = '';
-            text = text.toLowerCase().replace(/[^a-z0-9 ]/g, '');
+        function clearASLAnimation() {
             if (timer) {
                 clearTimeout(timer);
                 timer = null;
             }
+            animationActive = false;
+        }
+
+        function showASL(text) {
+            clearASLAnimation();
+            aslOutput.innerHTML = '';
+            text = text.toLowerCase().replace(/[^a-z0-9 ]/g, '');
             fetch('/api/asl-translate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -183,10 +189,12 @@
             })
             .then(res => res.json())
             .then(data => {
+                animationActive = true;
                 if (data.mode === 'individual') {
                     const chars = data.result;
                     let charIndex = 0;
                     function showNextChar() {
+                        if (!animationActive) return;
                         aslOutput.innerHTML = '';
                         if (charIndex < chars.length) {
                             const { char, img } = chars[charIndex];
@@ -221,6 +229,7 @@
                     const words = data.result;
                     let wordIndex = 0;
                     function showNextWord() {
+                        if (!animationActive) return;
                         aslOutput.innerHTML = '';
                         if (wordIndex < words.length) {
                             const wordObj = words[wordIndex];
