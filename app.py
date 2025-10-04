@@ -1,7 +1,9 @@
 from flask import Flask, render_template, send_from_directory, request, jsonify
+from flask_cors import CORS
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='assets')
+CORS(app)
 
 ASL_IMAGE_MAP = {ch: f"/assets/{ch}.png" for ch in list("abcdefghijklmnopqrstuvwxyz0123456789")}
 
@@ -9,9 +11,10 @@ ASL_IMAGE_MAP = {ch: f"/assets/{ch}.png" for ch in list("abcdefghijklmnopqrstuvw
 def index():
     return render_template('index.html')
 
-@app.route('/assets/<filename>')
+# Use Flask's static route for assets
+@app.route('/assets/<path:filename>')
 def asset(filename):
-    return send_from_directory(os.path.join(app.root_path, 'assets'), filename)
+    return app.send_static_file(filename)
 
 @app.route('/api/asl-translate', methods=['POST'])
 def asl_translate():
@@ -39,4 +42,4 @@ def asl_translate():
         return jsonify({'mode': 'group', 'result': result})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
